@@ -61,9 +61,12 @@ Boş klasörler `.gitkeep` ile tutulur; endpoint geliştirmesi başladığında 
 - `Profile`: kullanıcıya bire bir bağlı herkese açık profil
 - `List`: kullanıcı listesi ve görünürlük seviyesi
 - `Product`: kaydedilen ürün ve kaynak/fiyat bilgileri
+- `ProductImage`: ürün görselinin depolama anahtarı, özgün kaynağı ve sırası
 - `ListProduct`: liste–ürün ilişkisi ve liste içi sıralama
 
 `ListProduct` ayrı bir modeldir; aynı ürün birden fazla listede yer alabilir ve her listede bağımsız bir sıraya sahip olabilir.
+
+Ürün görsellerinin dosya içeriği PostgreSQL'e yazılmaz. Dosyalar S3 uyumlu bir obje depolamada tutulur; `ProductImage.storageKey` yalnızca dosyanın kalıcı anahtarını saklar. Genel erişim adresi bu anahtar ile uygulamanın CDN temel adresinden oluşturulur. `sourceUrl`, bağlantıdan çıkarılan görselin özgün adresini izlenebilirlik için isteğe bağlı olarak korur. `position = 0` olan kayıt ürünün kapak görselidir.
 
 ## Ortam değişkenleri
 
