@@ -2,7 +2,7 @@
 
 LinkList'in NestJS, PostgreSQL ve Prisma tabanlı backend uygulaması.
 
-Bu ilk aşama yalnızca uygulama altyapısını ve veri modelini içerir. Henüz HTTP endpoint'i veya controller eklenmemiştir. Frontend'in beklediği sözleşme `../docs/api-contract.md` dosyasındadır.
+Uygulama altyapısı ve veri modeline ek olarak, yalnızca üretim dışı ortamlarda yüklenen küçük bir doğrulama modülü bulunur. Ürün endpoint'leri henüz geliştirilmemiştir. Frontend'in beklediği sözleşme `../docs/api-contract.md` dosyasındadır.
 
 ## Gereksinimler
 
@@ -22,6 +22,8 @@ npm run start:dev
 ```
 
 Uygulama varsayılan olarak `http://localhost:3001` adresinde çalışır. PostgreSQL host makinede `localhost:5432` üzerinden erişilebilir.
+
+Frontend'i ayrıca çalıştırıp `http://localhost:3000/backend-test` adresini açarak örnek veriyi oluşturabilir ve ilişkili kayıtları PostgreSQL'den okuyabilirsiniz. Bu panelin kullandığı `/api/dev/*` endpoint'leri `NODE_ENV=production` olduğunda uygulamaya eklenmez.
 
 ## Komutlar
 
