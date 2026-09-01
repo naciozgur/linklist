@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-type Product = { id: number; name: string; brand: string; price?: string; image?: string; note?: string };
+type Product = { id: number; name: string; brand: string; price?: string; image?: string; note?: string; sourceUrl?: string };
 type Visibility = "Herkese açık" | "Bağlantıya özel" | "Gizli";
 type Collection = { id: string; title: string; description: string; category: string; visibility: Visibility; products: Product[] };
 
@@ -60,6 +60,9 @@ export default function Home() {
   const [saved, setSaved] = useState<number[]>([]);
   const [likedCollections, setLikedCollections] = useState<string[]>([]);
   const [toast, setToast] = useState("");
+  const [productUrl, setProductUrl] = useState("");
+  const [productLoading, setProductLoading] = useState(false);
+  const [productError, setProductError] = useState("");
   const pinned = useMemo(() => [products[0], products[1], products[3], products[4]], []);
 
   function notify(message: string) { setToast(message); window.setTimeout(() => setToast(""), 2200); }
@@ -76,6 +79,37 @@ export default function Home() {
       `${source}?auto=format&fit=crop&w=900&h=900&q=76`,
       `${source}?auto=format&fit=crop&w=420&h=640&q=52`,
     ];
+  }
+
+  async function addProductFromUrl(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setProductLoading(true);
+    setProductError("");
+    try {
+      const response = await fetch("/api/product-preview", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url: productUrl }),
+      });
+      const data = await response.json() as { name?: string; brand?: string; price?: number; currency?: string; sourceUrl?: string; images?: string[]; message?: string };
+      if (!response.ok || !data.name) throw new Error(data.message ?? "Ürün bilgisi alınamadı.");
+      const newProduct: Product = {
+        id: Date.now(),
+        name: data.name,
+        brand: data.brand ?? "Marka belirtilmemiş",
+        price: data.price === undefined ? undefined : new Intl.NumberFormat("tr-TR", { style: "currency", currency: data.currency ?? "TRY" }).format(data.price),
+        image: data.images?.[0],
+        sourceUrl: data.sourceUrl,
+      };
+      setSelectedCollection((current) => ({ ...current, products: [...current.products, newProduct] }));
+      setProductUrl("");
+      notify("Ürün geçici olarak listeye eklendi");
+      setScreen("collection");
+    } catch (reason) {
+      setProductError(reason instanceof Error ? reason.message : "Ürün bilgisi alınamadı.");
+    } finally {
+      setProductLoading(false);
+    }
   }
 
   return (
@@ -120,7 +154,13 @@ export default function Home() {
           {selectedCollection.products.length === 0 ? <div className="empty-list-state"><span className="empty-symbol"><Icon name="plus" size={26}/></span><div className="eyebrow">Liste hazır</div><h2>İlk ürününü ekle</h2><p>Bir mağaza bağlantısı yapıştırabilir ya da ürünü elle tamamlayabilirsin.</p><button className="secondary-button" onClick={() => setScreen("manual")}><Icon name="plus" size={17}/> Ürün ekle</button></div> : <div className={view === "grid" ? "product-grid" : "product-list"}>{selectedCollection.products.map((product) => <article className="product-card" key={product.id}><div className="product-image-wrap"><button className="product-image" onClick={() => product.image && openProduct(product)}>{product.image ? <img src={product.image} alt={product.name}/> : <ProductPlaceholder/>}</button><button className={saved.includes(product.id) ? "save active" : "save"} aria-label="Ürünü kaydet" onClick={() => toggleSave(product.id)}><Icon name="heart" size={19}/></button></div><div className="product-copy"><div><span>{product.brand}</span></div><button onClick={() => product.image && openProduct(product)}><h3>{product.name}</h3></button><p>{product.price ?? "Fiyat belirtilmemiş"}</p></div></article>)}</div>}
         </section> : <section className="manual-page">
           <button className="back-button" onClick={() => setScreen("collection")}><Icon name="arrow" size={19}/> {selectedCollection.title}</button>
-          <div className="manual-intro"><div className="eyebrow">Bağlantı okunamadı</div><h1>Ürünü elle tamamla</h1><p>Bulabildiğimiz alanları koruduk. Eksik bilgileri ekleyip ürününü listene kaydedebilirsin.</p></div>
+          <div className="manual-intro"><div className="eyebrow">Ürün ekle</div><h1>Bağlantıyı yapıştır</h1><p>Trendyol, Hepsiburada, LC Waikiki veya Amazon Türkiye bağlantısından ürün adı, fiyatı ve fotoğrafı alınarak açık listene geçici olarak eklenir.</p></div>
+          <form className="link-add-form" onSubmit={addProductFromUrl}>
+            <label>Ürün bağlantısı<input type="url" value={productUrl} onChange={(event) => setProductUrl(event.target.value)} placeholder="https://www.trendyol.com/..." required/></label>
+            <button type="submit" className="primary-button" disabled={productLoading}>{productLoading ? "Ürün getiriliyor…" : "Linkten ürün ekle"}</button>
+          </form>
+          {productError && <div className="product-link-error" role="alert">{productError}</div>}
+          <div className="manual-divider"><span>veya elle ekle</span></div>
           <form className="manual-form" onSubmit={(event) => { event.preventDefault(); notify("Ürün listeye kaydedildi"); setScreen("collection"); }}>
             <label className="photo-upload"><ProductPlaceholder/><span>Fotoğraf seç</span></label>
             <div className="form-fields"><label>Ürün adı<input placeholder="Örn. Keten gömlek" required/></label><div className="form-row"><label>Fiyat <small>isteğe bağlı</small><input placeholder="0,00 TL"/></label><label>Mağaza / marka<input placeholder="Mağaza adı" required/></label></div><label>Ürün bağlantısı<input type="url" placeholder="https://..." required/></label><label>Not <small>isteğe bağlı</small><textarea rows={4} placeholder="Bu ürünü neden kaydettin?"/></label><div className="form-actions"><button type="submit" className="primary-button">Listeye kaydet</button><button type="button" className="secondary-button" onClick={() => setScreen("collection")}>Vazgeç</button></div></div>
